@@ -1,0 +1,49 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  mavenPomFile: 'pom.xml'
+
+steps:
+
+# Install Java JDK
+- task: JavaToolInstaller@0
+  displayName: 'Install JDK 17'
+  inputs:
+    versionSpec: '17'
+    jdkArchitectureOption: 'x64'
+    jdkSourceOption: 'PreInstalled'
+
+# Maven Build
+- task: Maven@4
+  displayName: 'Maven Clean Package'
+  inputs:
+    mavenPomFile: '$(mavenPomFile)'
+    goals: 'clean package'
+    publishJUnitResults: true
+    testResultsFiles: '/surefire-reports/TEST-*.xml'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '1.17'
+    mavenVersionOption: 'Default'
+    mavenAuthenticateFeed: false
+    effectivePomSkip: false
+    sonarQubeRunAnalysis: false
+
+# Copy JAR/WAR files to Artifact Staging Directory
+- task: CopyFiles@2
+  displayName: 'Copy Build Artifacts'
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
+    Contents: '/target/*.jar'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+# Publish Artifacts
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifacts'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
